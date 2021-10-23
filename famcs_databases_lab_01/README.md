@@ -1,4 +1,6 @@
-
+# Rent Agency Database
+> I use ERwing and [StarUML](http://staruml.io/). Model saved in
+> [`famcs_databases_lab_01.er1`](https://github.com/vetasavitskaya/famcs_databases_labs/blob/main/famcs_databases_lab_01/famcs_databases_lab_01.er1)
 ## tasks
 - Для выполнения данной работы требуется спроектировать и создать базы данных, относящиеся к различным предметным областям.
 - В процессе проектирования необходимо:
