@@ -116,7 +116,7 @@ rollback;
 DELETE FROM career
     WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL);
 DELETE FROM bonus
-    WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL );
+    WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL);
 DELETE FROM emp
         WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL);
 rollback;
