@@ -114,9 +114,12 @@ DELETE FROM career
 rollback;
 --20. ”далите записи из таблицы EMP дл€ тех сотрудников, которые работают на предпри€тии в насто€щий момент.
 DELETE FROM career
-    WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL);
+    WHERE empno NOT IN (SELECT DISTINCT empno FROM career 
+	WHERE enddate IS NOT NULL);
 DELETE FROM bonus
-    WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL);
+    WHERE empno NOT IN (SELECT DISTINCT empno FROM career 
+	WHERE enddate IS NOT NULL);
 DELETE FROM emp
-        WHERE empno IN (SELECT DISTINCT empno FROM career WHERE enddate IS NULL);
+        WHERE empno NOT IN (SELECT DISTINCT empno FROM career 
+		WHERE enddate IS NOT NULL);
 rollback;
