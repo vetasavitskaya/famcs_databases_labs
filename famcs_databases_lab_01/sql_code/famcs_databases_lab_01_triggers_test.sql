@@ -1,11 +1,3 @@
--- триггер должен отслеживать, чтобы временные интервалы сдачи автомобиля не пересекались;
-CREATE OR REPLACE TRIGGER rent_contracts_rent_intervals_check
-BEFORE INSERT OR UPDATE OR DELETE ON rent_contracts
-FOR EACH ROW
-DECLARE
-    number_of_rents INTEGER;
-BEGIN
-    SELECT COUNT(*) into number_of_rents FROM rent_contracts
 -- создали орендатора для тестирования триггеров
 -- INSERT INTO renters VALUES (14, 'Trigger Test', 'Trigger Test', 'Trigger Test', 'Trigger Test', '7637905A014PB1', '000014');
 
