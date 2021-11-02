@@ -16,7 +16,7 @@ BEGIN
     THEN RAISE_APPLICATION_ERROR(-20001, 'Временные интервалы сдачи автомобиля не должны пересекаться !');
     END IF;
 END;
-
+/
 -- триггер должен отслеживать, чтобы в аренде у одного клиента не находилось более 2-х автомобилей одновременно;
 CREATE OR REPLACE TRIGGER rent_contracts_renters_cars_check
 BEFORE INSERT OR UPDATE OR DELETE ON rent_contracts
@@ -35,7 +35,7 @@ BEGIN
     THEN RAISE_APPLICATION_ERROR(-20001, 'В аренде у одного клиента не может находиться более 2-х автомобилей одновременно !');
     END IF;
 END;
-
+/
 -- триггер должен отслеживать, чтобы окончательная стоимость аренды была не менее 100 рублей;
 CREATE OR REPLACE TRIGGER rent_contracts_final_cost_check
 BEFORE INSERT OR UPDATE ON rent_contracts
