@@ -9,6 +9,6 @@ INSERT INTO rent_contracts VALUES (18, 4, 2, to_date('2021-11-12', 'yyyy-mm-dd')
 INSERT INTO rent_contracts VALUES (19, 4, 3, to_date('2021-11-13', 'yyyy-mm-dd'), to_date('2021-11-17', 'yyyy-mm-dd'), NULL, NULL, NULL, 100, NULL, 100);
 
 -- триггер должен отслеживать, чтобы окончательная стоимость аренды была не менее 100 рублей;
-INSERT INTO rent_contracts VALUES (20, 4, 1, to_date('2021-11-04', 'yyyy-mm-dd'), to_date('2021-11-08', 'yyyy-mm-dd'), NULL, NULL, NULL, 80, NULL, 80);
-INSERT INTO rent_contracts VALUES (21, 4, 1, to_date('2021-11-04', 'yyyy-mm-dd'), to_date('2021-11-08', 'yyyy-mm-dd'), NULL, NULL, NULL, 100, NULL, 100);
-INSERT INTO rent_contracts VALUES (22, 6, 2, to_date('2021-11-04', 'yyyy-mm-dd'), to_date('2021-11-08', 'yyyy-mm-dd'), NULL, NULL, NULL, 120, NULL, 120);
+INSERT INTO rent_contracts VALUES (20, 6, 6, to_date('2021-11-04', 'yyyy-mm-dd'), to_date('2021-11-08', 'yyyy-mm-dd'), NULL, NULL, NULL, 80, NULL, 80);
+INSERT INTO rent_contracts VALUES (21, 7, 7, to_date('2021-11-04', 'yyyy-mm-dd'), to_date('2021-11-08', 'yyyy-mm-dd'), NULL, NULL, NULL, 100, NULL, 100);
+INSERT INTO rent_contracts VALUES (22, 8, 8, to_date('2021-11-04', 'yyyy-mm-dd'), to_date('2021-11-08', 'yyyy-mm-dd'), NULL, NULL, NULL, 120, NULL, 120);
