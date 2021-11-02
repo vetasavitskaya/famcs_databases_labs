@@ -14,7 +14,7 @@ BEGIN
             OR (rent_starting_date = :new.rent_ending_date)
             OR (rent_ending_date = :new.rent_ending_date)
             OR (rent_ending_date = :new.rent_starting_date));
-    IF number_of_rents > 1
+    IF number_of_rents > 0
     THEN RAISE_APPLICATION_ERROR(-20001, 'Временные интервалы сдачи автомобиля не должны пересекаться !');
     END IF;
 END;
