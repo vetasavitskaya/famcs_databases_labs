@@ -120,10 +120,10 @@ BEFORE INSERT OR UPDATE ON emp
 FOR EACH ROW
 BEGIN
   IF (:new.mstat = 's' AND (:new.nchild != 0 OR :new.nchild IS NULL))
-  THEN RAISE_APPLICATION_ERROR(-20001, 'У сотрудника с семейным положением холост не может быть не нулевое количество детей или NULL !');
+  THEN RAISE_APPLICATION_ERROR(-20011, 'У сотрудника с семейным положением холост не может быть не нулевое количество детей или NULL !');
   END IF;
   IF (:new.nchild < 0 OR :new.nchild IS NULL)
-  THEN RAISE_APPLICATION_ERROR(-20001, 'У сотрудника не может быть указано отрицательное количество детей или Null !');
+  THEN RAISE_APPLICATION_ERROR(-20012, 'У сотрудника не может быть указано отрицательное количество детей или Null !');
   END IF;
 END;
 
