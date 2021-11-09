@@ -4,7 +4,7 @@ DROP TABLE EMP;
 DROP TABLE DEPT;
 DROP TABLE JOB;
 /******************************************************/
-/*          Ã¯Ã®Ã¤Ã°Ã Ã§Ã¤Ã¥Ã«Ã¥Ã­Ã¨Ã¿                             */ 
+/*          ïîäğàçäåëåíèÿ                             */ 
 /******************************************************/
 create table dept (deptid varchar (3) primary key not null, deptname varchar (20) not null, 
 	deptaddress varchar(25) not null);
@@ -22,7 +22,7 @@ insert into dept values ('U04', 'Operations', 'USA, Boston');
 insert into dept values ('B05', 'Production', 'Belarus, Minsk');
 commit;
 /******************************************************/
-/*          Ã°Ã Ã¡Ã®Ã²Ã­Ã¨ÃªÃ¨                                 */ 
+/*          ğàáîòíèêè                                 */ 
 /******************************************************/
 create table emp (empno integer primary key not null, empname varchar (15) not null, 
 	birthdate date not null  check (birthdate>to_date('01-01-1958','dd-mm-yyyy')));
@@ -59,7 +59,7 @@ insert into emp values (505, 'Fedor Dikunov', to_date('12.07.1965','dd-mm-yyyy')
 insert into emp values (601, 'Anna Zlotnik', to_date('18.05.1979','dd-mm-yyyy'));  
 commit;
 /******************************************************/
-/*          Ã¤Ã®Ã«Ã¦Ã­Ã®Ã±Ã²Ã¨                                 */ 
+/*          äîëæíîñòè                                 */ 
 /******************************************************/
 create table job (jobno integer primary key not null, jobname varchar(20) not null, 
 	minsalary real not null);
@@ -76,7 +76,7 @@ insert into job values (1008, 'Programmer', 7500);
 insert into job values (1009, 'Accountant',5500);
 commit;
 /******************************************************/
-/*          Ã±Ã«Ã³Ã¦Ã¥Ã¡Ã­Ã Ã¿ ÃªÃ Ã°Ã¼Ã¥Ã°Ã                          */ 
+/*          ñëóæåáíàÿ êàğüåğà                         */ 
 /******************************************************/
 create table career (jobno integer references job(jobno) not null , 
 	empno integer references emp(empno) not null, deptid varchar(3) references dept(deptid) not null,
@@ -129,7 +129,7 @@ insert into career values  (1006, 505, 'B01', to_date('01.06.2007','dd-mm-yyyy')
 insert into career values  (1007, 601, 'B05', to_date('01.07.2013','dd-mm-yyyy'), null);
 commit;
 /******************************************************/
-/*         Ã¯Ã°Ã¥Ã¬Ã¨Ã¿                     */ 
+/*         ïğåìèÿ                     */ 
 /******************************************************/
 drop table bonus;
 create table bonus (empno integer references emp(empno) not null, month smallint check(month>0 and month<13), year integer check(year>2014 and year<=2021), bonvalue real);
