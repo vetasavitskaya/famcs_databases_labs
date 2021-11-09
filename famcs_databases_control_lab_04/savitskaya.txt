@@ -1,0 +1,129 @@
+--Лабораторная выполняется в СУБД  Oracle. 
+--Cкопируйте файл  EDU4.sql  в каталог C:\TEMP .
+--Раскройте файл и ознакомтесь со скриптом создания и заполнения таблиц для выполнения лабораторной. 
+--Таблица Emp имеет дополнительные столбцы mstat (семейное положение), Nchild (количество несовершеннолетних детей).  
+--Произведите запуск Oracle и соеденитесь с БД.  Запустите скрипты EDU4.sql на выполнение.
+--Вставте в эту строку Ваши ФИО, номер группы, курса. ФИО Савицкая Елизавета Дмитриевна, группа 4, курс 4.      
+--Файл с отчётом о выполнении лабораторной создаётся путём вставки скриптов, созданных Вами программ после пунктов 1, 2.
+--Файл отчёта именуется фамилией студента  в английской транскрипции, с расширением .txt и сохраняется в  edufpmi.bsu.by (при возникновении непредвиденной ситуации,
+--приводящей к невозможности сохранения в edufpmi.bsu.by, высылается на почту преподавателя до дедлайна).
+--НЕ ДОПУСКАЕТСЯ УДАЛЕНИЕ ЛЮБЫХ (в том числе и первых) СТРОК ИЗ ДАННОГО ТЕКСТА!!!
+--РАБОТА ВЫПОЛНЯЕТСЯ ИНДИВИДУАЛЬНО!!!
+--ПРИ НЕПРАВИЛЬНОМ ОФОРМЛЕНИИ ИЛИ КОПИРОВАНИИ У ДРУГОГО СТУДЕНТА, РАБОТА НЕ ПРОВЕРЯЕТСЯ И ПОЛУЧАЕТ ОЦЕНКУ 0!!! 
+
+--1. Создайте пакет, включающий в свой состав процедуры ChildBonus, функцию EmpChildBonus. 
+--Процедура ChildBonus должна вычислять ежегодную добавку к 
+--зарплате сотрудников на детей за 2020 год и заносить её в виде дополнительной премии в первом месяце (январе) следующего 2021
+--календарного года в поле Bonvalue таблицы Bonus. 
+--В качестве параметров процедуре передаются проценты в зависимости от количества детей (см. правило начисления добавки).
+--Функция EmpChildBonus должна вычислять ежегодную добавку за 2020 год на детей к  зарплате конкретного сотрудника 
+--(номер сотрудника - параметр передаваемый функции) без занесения в таблицу.
+
+-ПРАВИЛО ВЫЧИСЛЕНИЯ ДОБАВКИ
+
+--Добавка к заработной плате на детей  вычисляется только для работавших в декабре 2020 году сотрудников по следующему правилу: 
+--добавка равна X% от суммы должностного месячного оклада (поле minsalary таблицы job) по занимаемой в декабре 2020 года должности и всех начисленных 
+--за 2020 год премий (поле bonvalue таблицы bonus), где:
+--X% равны X1% , если сотрудник имеет одного ребёнка;
+--X% равны X2% , если сотрудник имеет двух детей;
+--X% равны X3% , если сотрудник имеет трёх и более детей.
+--X1%<X2%<X3%  являются передаваемыми процедуре и функции параметрами. Кроме этого, функции в качестве параметра передаётся номер сотрудника (empno). 
+
+CREATE OR REPLACE PACKAGE Lab04_ChildBonusPackage AS
+FUNCTION EmpChildBonus(emp_number IN INTEGER, X1 IN REAL, X2 IN REAL, X3 IN REAL) RETURN REAL;
+PROCEDURE ChildBonus(X1 IN REAL, X2 IN REAL, X3 IN REAL);
+END Lab04_ChildBonusPackage;
+/
+CREATE OR REPLACE PACKAGE BODY Lab04_ChildBonusPackage AS
+    PROCEDURE ChildBonus(X1 IN REAL, X2 IN REAL, X3 IN REAL) IS
+        CURSOR CH_BON_CURSOR IS SELECT DISTINCT emp.empno FROM emp;
+        emp_number        INTEGER := 0;
+        bonus_sum         REAL := 0;
+        salary            REAL := 0;
+        result_sum        REAL    := 0;
+        number_of_clilds  INTEGER := 0;
+        bonus_for_chilids REAL    := 0;
+    BEGIN
+        OPEN CH_BON_CURSOR;
+        LOOP
+            FETCH CH_BON_CURSOR INTO emp_number;
+            EXIT WHEN CH_BON_CURSOR % notfound;
+            BEGIN
+                SELECT sum(nvl(bonvalue, 0))
+                INTO bonus_sum FROM bonus
+                WHERE empno = emp_number AND bonus.year = 2019
+                GROUP BY empno;
+            EXCEPTION
+                WHEN no_data_found THEN bonus_sum := 0;
+            END;
+            BEGIN
+                SELECT sum(nvl(minsalary, 0)) INTO salary FROM career, job
+                    WHERE career.empno = emp_number AND JOB.JOBNO = career.jobno AND EXTRACT(year FROM career.startdate) <= 2020
+                        AND (career.enddate IS NULL OR EXTRACT(year FROM career.enddate) > 2020)
+                GROUP BY career.empno;
+            EXCEPTION
+                WHEN no_data_found THEN salary := 0;
+            END;
+            BEGIN
+                SELECT nchild INTO number_of_clilds FROM emp WHERE empno = emp_number;
+            END;
+            result_sum := bonus_sum + salary;
+            IF number_of_clilds = 1 THEN bonus_for_chilids := result_sum * X1 / 100;
+            ELSIF number_of_clilds = 2 THEN bonus_for_chilids := result_sum * X2 / 100;
+            ELSIF number_of_clilds > 2 THEN bonus_for_chilids := result_sum * X3 / 100;
+            END IF;
+            IF bonus_for_chilids > 0 THEN 
+                INSERT INTO bonus (empno, month, year, bonvalue, tax) VALUES (emp_number, 1, 2021, bonus_for_chilids, NULL);
+            END IF;
+        END LOOP;
+        CLOSE CH_BON_CURSOR;
+    END ChildBonus;
+
+    FUNCTION EmpChildBonus(emp_number IN INTEGER, X1 IN REAL, X2 IN REAL, X3 IN REAL) RETURN REAL IS
+        bonus_sum         REAL := 0;
+        salary            REAL := 0;
+        result_sum        REAL    := 0;
+        number_of_clilds  INTEGER := 0;
+        bonus_for_chilids REAL    := 0;
+    BEGIN
+        BEGIN
+            SELECT sum(nvl(bonvalue, 0)) INTO bonus_sum FROM bonus
+                WHERE empno = emp_number AND BONUS.YEAR = 2020
+            GROUP BY empno;
+        END;
+        BEGIN
+            SELECT sum(nvl(minsalary, 0)) INTO salary FROM career, job
+                WHERE career.empno = emp_number AND job.jobno = career.jobno AND EXTRACT(year FROM career.startdate) <= 2020 
+                    AND(career.enddate IS NULL OR EXTRACT(year FROM career.enddate) > 2020)
+            GROUP BY career.empno;
+        END;
+        BEGIN
+            SELECT nchild INTO number_of_clilds FROM emp WHERE empno = emp_number;
+        END;
+        result_sum := bonus_sum + salary;
+        IF number_of_clilds = 1 THEN bonus_for_chilids := result_sum * X1 / 100;
+        ELSIF number_of_clilds = 2 THEN bonus_for_chilids := result_sum * X2 / 100;
+        ELSIF number_of_clilds > 2 THEN bonus_for_chilids := result_sum * X3 / 100;
+        END IF;
+        RETURN bonus_for_chilids;
+    END EmpChildBonus;
+END Lab04_ChildBonusPackage;
+/
+
+
+--2. Создайте триггер, который при добавлении или обновлении записи в таблице EMP 
+-- должен отменять действие и сообщать об ошибке:
+--a) если для сотрудника с семейным положением холост (s)  в столбце Nchild указывается не нулевое количество детей или NULL;
+--b) если для любого сотрудника указывается отрицательное количество детей или Null.
+CREATE OR REPLACE TRIGGER employer_check
+BEFORE INSERT OR UPDATE ON emp
+FOR EACH ROW
+BEGIN
+  IF (:new.mstat = 's' AND (:new.nchild != 0 OR :new.nchild IS NULL))
+  THEN RAISE_APPLICATION_ERROR(-20001, 'У сотрудника с семейным положением холост не может быть не нулевое количество детей или NULL !');
+  END IF;
+  IF (:new.nchild < 0 OR :new.nchild IS NULL)
+  THEN RAISE_APPLICATION_ERROR(-20001, 'У сотрудника не может быть указано отрицательное количество детей или Null !');
+  END IF;
+END;
+
