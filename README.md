@@ -13,4 +13,4 @@
 [**Lab 5: Fifth Laboratory Work At Class**](https://github.com/vetasavitskaya/famcs_databases_labs/tree/main/famcs_databases_control_lab_05) `триггеры, only one day to do`
 
 
-[**Lab 6: Sixth Laboratory Work At Class**]()`обработка исключительных ситуаций`
+[**Lab 6: Sixth Laboratory Work At Class**]() `обработка исключительных ситуаций`
