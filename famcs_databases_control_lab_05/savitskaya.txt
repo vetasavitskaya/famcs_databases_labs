@@ -1,0 +1,176 @@
+--Лабораторная выполняется в СУБД  Oracle. 
+--Cкопируйте файл  EDU5.txt  в каталог C:\TEMP .
+--Раскройте файл и ознакомтесь со скриптом создания и заполнения таблиц для выполнения лабораторной. 
+--Произведите запуск Oracle.  Запустите скрипт EDU5.txt на выполнение.
+--Вставте в эту строку Ваши ФИО, номер группы, курса. ФИО Савицкая Елизавета Дмитриевна, группа 4, курс 4.      
+--Файл с отчётом о выполнении лабораторной создаётся путём вставки скриптов, созданных Вами программ после пунктов 1-10.
+--Файл отчёта именуется фамилией студента  в английской транскрипции, с расширением .txt и сохраняется в  edufpmi.bsu.by 
+--(при возникновении непредвиденной ситуации, приводящей к невозможности сохранения в edufpmi.bsu.by, высылается на почту преподавателя до дедлайна).
+--НЕ ДОПУСКАЕТСЯ УДАЛЕНИЕ ЛЮБЫХ (в том числе и первых) СТРОК ИЗ ДАННОГО ТЕКСТА!!!
+--РАБОТА ВЫПОЛНЯЕТСЯ ИНДИВИДУАЛЬНО!!!
+--ПРИ НЕПРАВИЛЬНОМ ОФОРМЛЕНИИ ИЛИ КОПИРОВАНИИ У ДРУГОГО СТУДЕНТА, РАБОТА НЕ ПРОВЕРЯЕТСЯ И ПОЛУЧАЕТ ОЦЕНКУ 0!!!    
+
+--1. Создайте триггер, который при обновлении записи в таблице EMP 
+-- должен отменять действие и сообщать об ошибке
+-- a) если семейное положение сотрудника холост/одинокая (s) изменяется на семейное положение разведен/разведена (d); 
+-- b) семейное положение женат/замужем (m) изменяется  на семейное положение холост/одинокая (s);
+CREATE OR REPLACE TRIGGER employer_check_mstat
+BEFORE UPDATE ON emp
+FOR EACH ROW
+BEGIN
+    IF (:old.mstat = 's' AND :new.mstat = 'd')
+    THEN RAISE_APPLICATION_ERROR(-20011, 'Семейное положение сотрудника холост/одинокая не может быть изменено на разведен/разведена !');
+    END IF;
+    IF (:old.mstat = 'm' AND :new.mstat = 's')
+    THEN RAISE_APPLICATION_ERROR(-20012, 'Семейное положение женат/замужем не может быть изменено на холост/одинокая !');
+    END IF;
+END;
+/
+--2. Создайте триггер, который при добавлении или обновлении записи в таблице EMP должен:
+-- a) осуществлять вставку данного равного 0,
+-- если для сотрудника с семейным положением холост/одинокая (s)  в столбце Nchild указывается данное, отличное от 0;
+-- b) осуществлять вставку данного NULL,
+-- если для любого сотрудника указывается отрицательное количество детей.
+CREATE OR REPLACE TRIGGER employer_check_nchild_number
+BEFORE INSERT OR UPDATE ON emp
+FOR EACH ROW
+BEGIN
+    IF (:new.mstat = 's' AND NOT (:new.nchild IS NULL OR :new.nchild = 0))
+    THEN :new.nchild := 0;
+    END IF;
+    IF (:new.nchild < 0)
+    THEN :new.nchild := NULL;
+    END IF;
+END;
+/
+--3. Создайте триггер, который при обновлении записи в таблице EMP 
+-- должен отменять действие и сообщать об ошибке, если для сотрудников, находящихся в браке (m) в столбце Nchild 
+-- новое значение увеличивается (рождение ребёнка) или уменьшается (достижение ребёнком совершеннолетия) более чем на 1.
+CREATE OR REPLACE TRIGGER employer_check_nchild_change
+BEFORE UPDATE ON emp FOR EACH ROW
+BEGIN
+    IF (:new.mstat = 'm' AND ABS(:new.nchild - :old.nchild) > 1)
+    THEN RAISE_APPLICATION_ERROR(-20013, 'Количество детей увеличилось или уменьшилось более чем на 1 !');
+    END IF;
+END;
+/
+--4. Создать триггер, который отменяет любые действия (начисление, изменение, удаление) с премиями (таблица bonus) 
+-- неработающих в настоящий момент в организации сотрудников и сообщает об ошибке.
+CREATE OR REPLACE TRIGGER employer_check_bonus
+BEFORE INSERT OR UPDATE OR DELETE ON bonus
+FOR EACH ROW
+DECLARE
+    employer_career INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO employer_career FROM career
+        WHERE empno = :new.empno AND enddate IS NULL;
+    IF (employer_career = 0)
+    THEN RAISE_APPLICATION_ERROR(-20014, 'В настоящий момент сотрудник не работает в организации !');
+    END IF;
+END;
+/
+--5. Создайте триггер, который после выполнения действия (вставка, обновление, удаление) с таблицей job
+-- создаёт запись в таблице temp_table, с указанием названия действия (delete, update, insert) активизирующего триггер.
+CREATE OR REPLACE TRIGGER employer_check_job_change_history
+AFTER INSERT OR UPDATE OR DELETE ON job
+FOR EACH ROW
+BEGIN
+    IF INSERTING
+    THEN INSERT INTO temp_table VALUES('insert');
+    END IF;
+    IF UPDATING
+    THEN INSERT INTO temp_table VALUES('update');
+    END IF;
+    IF DELETING
+    THEN INSERT INTO temp_table values('delete');
+    END IF;
+END;
+/
+--6. Создайте триггер, который до выполнения обновления в таблице job столбца minsalary отменяет действие, сообщает об ошибке
+-- и создаёт запись в таблице temp_table c указанием "более 10%",
+-- если должностной оклад изменяется более чем на 10% (увеличивается или уменьшается). 
+CREATE OR REPLACE PROCEDURE log_employer_check_job_minsalary AS PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        INSERT INTO temp_table values('более 10%');
+        COMMIT;
+    END;
+/
+CREATE OR REPLACE TRIGGER employer_check_job_minsalary
+BEFORE UPDATE ON job 
+FOR EACH ROW
+BEGIN
+    IF (ABS(:new.minsalary - :old.minsalary)/:old.minsalary > 0.1) THEN
+        RAISE_APPLICATION_ERROR(-20015, 'Должностной оклад изменяется более чем на 10% !');
+        log_employer_check_job_minsalary();
+    END IF;
+END;
+/
+--7. Создайте триггер, который при добавлении или обновлении записи в таблице Bonus отменяет действие, сообщает об ошибке
+--и создаёт запись в таблице temp_table с указанием "более 2000", 
+--если суммарная премия сотрудника, указанного в новой или обновлённой записи, за год, к которому относится вставляемая или обновляемая запись, превышает 2000.
+CREATE OR REPLACE PROCEDURE log_employer_check_job_bonus_value AS PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        INSERT INTO temp_table values('более 2000');
+        COMMIT;
+    END;
+/
+CREATE OR REPLACE TRIGGER employer_check_job_bonus_value
+BEFORE INSERT OR UPDATE ON bonus
+FOR EACH ROW
+DECLARE
+    total_bonus INTEGER;
+BEGIN
+    SELECT COUNT(*) into total_bonus FROM bonus
+        WHERE empno = :new.empno AND year = :new.year;
+    IF (total_bonus >= 2000) THEN 
+        log_employer_check_job_bonus_value();
+    RAISE_APPLICATION_ERROR(-20016, 'Суммарная премия сотрудника за год превышает 2000 !');
+    END IF;
+END;
+/
+--8. Создайте триггер, который запрещает перенос отдела (таблица Dept) по адресу, по которому уже существует отдел с тем же названием (столбец Deptaddress), 
+--сообщает об ошибке и заносит в таблицу temp_table запись с указанием "по адресу такой отдел уже существует".
+CREATE OR REPLACE TRIGGER employer_check_dept
+BEFORE INSERT OR UPDATE ON dept 
+FOR EACH ROW
+DECLARE
+  dept_counter INTEGER;
+BEGIN
+    SELECT COUNT(*) into dept_counter FROM dept
+        WHERE deptname = :new.deptname AND deptaddress = :new.deptaddress;
+    IF (dept_counter > 0)
+    THEN RAISE_APPLICATION_ERROR(-20017, 'По адресу такой отдел уже существует !');
+    INSERT INTO temp_table values('по адресу такой отдел уже существует');
+    END IF;
+END;
+/
+--9. Создайте триггер, который запрещает заносить в таблицу Job уже имеющуюся должность (совпадение по столбцу Jobname) или обновлять в записи название должности
+-- на уже присутствующую в таблице, сообщает об ошибке и заносит в таблицу temp_table запись с фразой "должность уже существует".
+CREATE OR REPLACE PROCEDURE log_employer_check_job_name AS PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        INSERT INTO temp_table values('должность уже существует');
+    END;
+/
+CREATE OR REPLACE TRIGGER employer_check_job_name
+BEFORE INSERT OR UPDATE ON job 
+FOR EACH ROW
+DECLARE
+    job_name_counter INTEGER;
+BEGIN
+    SELECT COUNT(*) into job_name_counter FROM job
+        WHERE jobname = :new.jobname;
+    IF (job_name_counter > 0) THEN
+        log_employer_check_job_name();
+    RAISE_APPLICATION_ERROR(-20018, 'Должность уже существует !');
+    END IF;
+END;
+/
+--10. Создайте триггер, который запрещает изменять даты приёма и увольнения сотрудника (одну из них или обе) в записях где указана дата увольнения, и сообщает об ошибке.  
+CREATE OR REPLACE TRIGGER employer_check_dates
+BEFORE UPDATE ON career
+FOR EACH ROW
+BEGIN
+  IF (:old.enddate IS NOT NULL AND :old.enddate != :new.enddate AND :old.startdate != :new.startdate)
+  THEN RAISE_APPLICATION_ERROR(-20019, 'Запрещено изменять даты приёма и увольнения сотрудника в записях, где указана дата увольнения !');
+  END IF;
+END;
